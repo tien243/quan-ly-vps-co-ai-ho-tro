@@ -1,0 +1,66 @@
+<svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3730a3"/>
+      <stop offset="50%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="screenGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818cf8" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#a78bfa" stop-opacity="0.05"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect width="1024" height="1024" rx="220" fill="url(#bgGrad)"/>
+
+  <!-- Inner highlight top-left -->
+  <rect width="1024" height="1024" rx="220" fill="url(#glowGrad)"/>
+
+  <!-- Terminal window card -->
+  <rect x="88" y="152" width="848" height="660" rx="36" fill="url(#screenGrad)"/>
+
+  <!-- Title bar -->
+  <rect x="88" y="152" width="848" height="68" rx="36" fill="#1e1b4b"/>
+  <rect x="88" y="186" width="848" height="34" fill="#1e1b4b"/>
+
+  <!-- Traffic lights -->
+  <circle cx="156" cy="186" r="18" fill="#ef4444"/>
+  <circle cx="216" cy="186" r="18" fill="#f59e0b"/>
+  <circle cx="276" cy="186" r="18" fill="#22c55e"/>
+
+  <!-- Title bar text -->
+  <text x="512" y="196" font-family="Arial, sans-serif" font-size="36" fill="rgba(255,255,255,0.45)" text-anchor="middle" font-weight="500">TermiusClone</text>
+
+  <!-- Separator -->
+  <rect x="88" y="220" width="848" height="1.5" fill="rgba(255,255,255,0.08)"/>
+
+  <!-- SSH command line 1 -->
+  <text x="136" y="318" font-family="'Courier New', Courier, monospace" font-size="72" fill="#4ade80" font-weight="bold">$</text>
+  <text x="200" y="318" font-family="'Courier New', Courier, monospace" font-size="72" fill="rgba(255,255,255,0.9)"> ssh root@vps</text>
+
+  <!-- Output line: connected -->
+  <text x="136" y="412" font-family="'Courier New', Courier, monospace" font-size="56" fill="#818cf8">Connected to 192.168.1.10</text>
+
+  <!-- Line 3 -->
+  <text x="136" y="494" font-family="'Courier New', Courier, monospace" font-size="72" fill="#4ade80" font-weight="bold">$</text>
+  <text x="200" y="494" font-family="'Courier New', Courier, monospace" font-size="72" fill="rgba(255,255,255,0.9)"> ls -la</text>
+
+  <!-- Fake output lines -->
+  <rect x="136" y="524" width="560" height="18" rx="4" fill="rgba(165,243,252,0.12)"/>
+  <rect x="136" y="556" width="400" height="18" rx="4" fill="rgba(129,140,248,0.15)"/>
+  <rect x="136" y="588" width="480" height="18" rx="4" fill="rgba(165,243,252,0.10)"/>
+
+  <!-- Prompt with cursor -->
+  <text x="136" y="678" font-family="'Courier New', Courier, monospace" font-size="72" fill="#4ade80" font-weight="bold">$</text>
+  <text x="200" y="678" font-family="'Courier New', Courier, monospace" font-size="72" fill="rgba(255,255,255,0.7)"> </text>
+  <!-- Cursor block -->
+  <rect x="218" y="626" width="38" height="64" rx="3" fill="#6366f1"/>
+
+  <!-- Bottom glow accent -->
+  <ellipse cx="512" cy="820" rx="280" ry="28" fill="#6366f1" opacity="0.25"/>
+</svg>
