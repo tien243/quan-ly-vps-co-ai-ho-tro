@@ -30,3 +30,16 @@ npm-debug.log*
 # Cache
 .cache/
 .parcel-cache/
+
+# Antigravity / Claude
+.claude/
+.gemini/
+CLAUDE.md
+
+# Planning & Testing
+IMPLEMENTATION_PLAN.md
+TEST_PLAN.md
+PRD.md
+findings.md
+task_plan.md
+progress.md
