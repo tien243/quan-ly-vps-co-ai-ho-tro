@@ -1,8 +1,8 @@
 # TermiusClone 🚀
 
-> A modern, lightweight, and high-performance SSH & SFTP client for Desktop. 
+> Ứng dụng quản lý SSH & SFTP desktop hiện đại, nhẹ và hiệu năng cao.
 
-Built with **Tauri 2.0**, **Rust**, and **React**. TermiusClone offers a premium native experience with a tiny bundle size (~10MB) compared to Electron-based alternatives.
+Xây dựng trên **Tauri 2.0**, **Rust** và **React**. TermiusClone mang lại trải nghiệm native cao cấp với dung lượng cài đặt chỉ ~10MB — nhỏ hơn rất nhiều so với các ứng dụng Electron.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Tauri](https://img.shields.io/badge/Tauri-2.0-orange.svg)
@@ -11,48 +11,40 @@ Built with **Tauri 2.0**, **Rust**, and **React**. TermiusClone offers a premium
 
 ---
 
-## ✨ Features
+## ✨ Tính năng chính
 
-- 🖥️ **Native Terminal**: High-performance Xterm.js terminal with full PTY support via Rust.
-- 📂 **Multi-Tab & Split View**: Manage multiple SSH sessions simultaneously with vertical/horizontal splitting.
-- 🗄️ **Host Management**: Organize your servers into groups and tags with a clean, searchable interface.
-- 🔐 **Secure Key Vault**: AES-256-GCM encrypted storage for your SSH private keys.
-- 📁 **SFTP Browser**: Dual-pane style file management—upload, download, and manage remote files with ease.
-- 📝 **SSH Snippets**: Save frequently used commands and inject them into active terminals instantly.
-- 🎨 **Premium UI**: Modern dark/light modes with built-in terminal themes (Dracula, Nord, Solarized, and more).
-- 🚀 **Performance**: Extremely low memory footprint and fast startup thanks to the Tauri architecture.
+- 🖥️ **Terminal Native**: Terminal hiệu năng cao dựa trên Xterm.js với hỗ trợ PTY đầy đủ qua Rust.
+- 📂 **Đa Tab & Chia đôi màn hình**: Quản lý nhiều phiên SSH cùng lúc, chia màn hình dọc/ngang tùy ý.
+- 🗄️ **Quản lý máy chủ**: Tổ chức server theo nhóm, tìm kiếm nhanh chóng với giao diện trực quan.
+- 🤖 **AI Hỗ trợ**: Tích hợp AI (Gemini, OpenRouter, Custom API) để phân tích lỗi terminal và giải đáp thắc mắc DevOps trực tiếp trong app.
+- 🔐 **Kho khóa bảo mật**: Lưu trữ SSH private key được mã hóa AES-256-GCM.
+- 📁 **SFTP Browser**: Quản lý file từ xa — upload, download, xem thư mục dễ dàng.
+- 📝 **Snippets lệnh**: Lưu các lệnh hay dùng và chèn trực tiếp vào terminal chỉ một click.
+- 🎨 **Giao diện cao cấp**: Hỗ trợ dark/light mode và nhiều theme terminal (Dracula, Nord, Solarized...).
+- 🚀 **Hiệu năng vượt trội**: Khởi động nhanh, tiêu thụ RAM thấp nhờ kiến trúc Tauri.
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Công nghệ sử dụng
 
-- **Tauri 2.0**: The backbone for cross-platform desktop integration.
-- **Rust**:
-  - `russh`: Pure Rust SSH2 implementation.
-  - `rusqlite`: Embedded SQLite for local data storage.
-  - `ring`: AES-256 encryption.
+- **Tauri 2.0**: Nền tảng desktop đa nền tảng (macOS, Windows).
+- **Rust (Backend)**:
+  - `russh`: Thư viện SSH2 thuần Rust.
+  - `rusqlite`: SQLite nhúng để lưu dữ liệu cục bộ.
+  - `ring`: Mã hóa AES-256.
 - **Frontend**:
-  - **React 18** + **Vite** + **TypeScript**.
-  - **Tailwind CSS** + **Shadcn UI** for a polished design.
-  - **Lucide React** for consistent iconography.
-  - **Zustand** for lightweight state management.
+  - **React 18** + **Vite** + **TypeScript**
+  - **Tailwind CSS** + **Shadcn UI**
+  - **Zustand** quản lý state
+  - **Lucide React** icon
 
 ---
 
-## 🚀 Getting Started
+## 📥 Tải về & Cài đặt
 
-### Prerequisites
+Tải bản mới nhất tại [GitHub Releases](https://github.com/tien243/quan-ly-vps-co-ai-ho-tro/releases):
 
-- [Rust](https://www.rust-lang.org/tools/install) (latest stable)
-- [Node.js](https://nodejs.org/) (v18 or newer)
-- **macOS**: Xcode Command Line Tools
-- **Windows**: [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) and C++ Build Tools
-
-### Download (Pre-built)
-
-Download the latest release from [GitHub Releases](https://github.com/tien243/quan-ly-vps-co-ai-ho-tro/releases):
-
-| Platform | File |
+| Nền tảng | File |
 |---|---|
 | macOS Apple Silicon (M1/M2/M3) | `TermiusClone_*_aarch64.dmg` |
 | macOS Intel | `TermiusClone_*_x64.dmg` |
@@ -60,9 +52,9 @@ Download the latest release from [GitHub Releases](https://github.com/tien243/qu
 
 > **macOS — Không mở được app?**
 >
-> Nếu bị Gatekeeper chặn → System Settings → Privacy & Security → Open Anyway.
+> Nếu bị Gatekeeper chặn → **System Settings → Privacy & Security → Open Anyway**.
 >
-> Hoặc chạy lệnh sau trong Terminal sau khi kéo app vào Applications:
+> Hoặc chạy lệnh sau trong Terminal sau khi kéo app vào thư mục Applications:
 > ```bash
 > xattr -cr /Applications/TermiusClone.app
 > ```
@@ -73,76 +65,84 @@ Download the latest release from [GitHub Releases](https://github.com/tien243/qu
 
 ---
 
-### Build from Source
+## 🔧 Tự build từ mã nguồn
 
-1. **Clone the repository**:
+### Yêu cầu
+
+- [Rust](https://www.rust-lang.org/tools/install) (phiên bản stable mới nhất)
+- [Node.js](https://nodejs.org/) (v18 trở lên)
+- **macOS**: Xcode Command Line Tools
+- **Windows**: [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) và C++ Build Tools
+
+### Các bước
+
+1. **Clone repository**:
    ```bash
    git clone https://github.com/tien243/quan-ly-vps-co-ai-ho-tro.git
    cd quan-ly-vps-co-ai-ho-tro
    ```
 
-2. **Install dependencies**:
+2. **Cài đặt dependencies**:
    ```bash
    npm install
    ```
 
-3. **Run in development mode**:
+3. **Chạy ở chế độ phát triển**:
    ```bash
    npm run tauri dev
    ```
 
-4. **Build for production**:
+4. **Build bản production**:
    ```bash
    npm run tauri build
    ```
 
 ---
 
-## 📂 Project Structure
+## 📂 Cấu trúc thư mục
 
 ```text
 .
-├── src/                # React Frontend (Vite)
+├── src/                # Frontend React (Vite)
 │   ├── components/     # UI Components (Shadcn + Custom)
 │   ├── store/          # Zustand State Management
-│   ├── pages/          # Main App Views (Hosts, Settings, etc.)
-│   └── lib/            # Utilities and Tauri API wrappers
-├── src-tauri/          # Rust Backend (Tauri)
-│   ├── src/            # Rust source code (SSH logic, DB, Commands)
-│   ├── capabilities/   # Tauri 2.0 security permissions
-│   └── tauri.conf.json # Tauri configuration
+│   ├── pages/          # Các màn hình chính (Hosts, Settings...)
+│   └── lib/            # Utilities và Tauri API wrappers
+├── src-tauri/          # Backend Rust (Tauri)
+│   ├── src/            # Mã nguồn Rust (SSH, DB, Commands)
+│   ├── capabilities/   # Phân quyền bảo mật Tauri 2.0
+│   └── tauri.conf.json # Cấu hình Tauri
 └── public/             # Static assets
 ```
 
 ---
 
-## 🛡️ Security
+## 🛡️ Bảo mật
 
-Your data security is our priority.
-- **Local Only**: All host configurations and keys are stored locally on your machine.
-- **Encryption**: Sensitive data (private keys/passwords) is encrypted using **AES-256-GCM** before being saved to the SQLite database.
-- **Environment**: No remote logging or tracking—your connections are yours alone.
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+- **Lưu trữ cục bộ**: Toàn bộ cấu hình và SSH key chỉ lưu trên máy của bạn, không gửi lên server.
+- **Mã hóa mạnh**: Dữ liệu nhạy cảm (private key, mật khẩu) được mã hóa bằng **AES-256-GCM** trước khi lưu vào SQLite.
+- **Không theo dõi**: Không có log từ xa, không analytics — kết nối của bạn là hoàn toàn riêng tư.
 
 ---
 
-## 📄 License
+## 🤝 Đóng góp
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Mọi đóng góp đều được chào đón! Hãy tạo Pull Request hoặc mở Issue để thảo luận trước khi thực hiện thay đổi lớn.
+
+1. Fork project
+2. Tạo branch mới (`git checkout -b feature/TinhNangMoi`)
+3. Commit thay đổi (`git commit -m 'feat: thêm tính năng mới'`)
+4. Push lên branch (`git push origin feature/TinhNangMoi`)
+5. Mở Pull Request
+
+---
+
+## 📄 Giấy phép
+
+Phân phối theo giấy phép MIT. Xem file `LICENSE` để biết thêm chi tiết.
 
 ---
 
 <p align="center">
-  Built with ❤️ by <b>Antigravity</b>
+  Xây dựng với ❤️ bởi <b>Antigravity</b>
 </p>
