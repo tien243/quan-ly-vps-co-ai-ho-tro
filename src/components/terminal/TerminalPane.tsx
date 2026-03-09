@@ -56,6 +56,14 @@ export default function TerminalPane({ tab }: Props) {
       term.write(event.payload);
       // Keep last ~2000 chars of output for AI context
       lastOutputRef.current = (lastOutputRef.current + event.payload).slice(-2000);
+      // Auto-detect common command errors in output
+      const cleanLine = event.payload
+        .replace(/\x1b\[[0-9;]*[A-Za-z]/g, "")
+        .replace(/[\r\n]+/g, " ")
+        .trim();
+      if (cleanLine && /command not found|no such file or directory|permission denied|error:|fatal:|failed|is not a \w+ command|unknown command|invalid argument|cannot|unrecognized|not recognized|no such|bad option|syntax error|exception|traceback/i.test(cleanLine)) {
+        setLastTerminalError(`[${tab.host_label}] ${cleanLine.slice(0, 300)}`);
+      }
     });
 
     // Listen for exit

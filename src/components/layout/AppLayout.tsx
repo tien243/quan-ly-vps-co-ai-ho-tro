@@ -9,9 +9,10 @@ import SnippetsPage from "../../pages/SnippetsPage";
 import SettingsPage from "../../pages/SettingsPage";
 import AiChatPage from "../../pages/AiChatPage";
 import SnippetsPanel from "../snippets/SnippetsPanel";
+import AiPanel from "../ai/AiPanel";
 
 export default function AppLayout() {
-  const { tabs, activeTabId, splitTabId, isSplit, splitDirection, showSnippets, activeView } =
+  const { tabs, activeTabId, splitTabId, isSplit, splitDirection, showSnippets, showAiPanel, activeView } =
     useStore();
 
   const hasTerminalTabs = tabs.length > 0;
@@ -75,6 +76,11 @@ export default function AppLayout() {
               <div className="w-px bg-border flex-shrink-0" />
               <SnippetsPanel sessionId={activeTab.session_id} />
             </>
+          )}
+
+          {/* AI Panel - sidebar next to terminal */}
+          {showAiPanel && activeTab && activeView !== "ai" && (
+            <AiPanel />
           )}
         </div>
       </div>

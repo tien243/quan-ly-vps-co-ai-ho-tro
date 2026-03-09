@@ -25,6 +25,7 @@ interface AppStore {
   isSplit: boolean;
   splitDirection: "horizontal" | "vertical";
   showSnippets: boolean;
+  showAiPanel: boolean;
   activeView: "hosts" | "keys" | "snippets" | "settings" | "ai";
   aiContext: string | null;
   lastTerminalError: string | null;
@@ -49,6 +50,8 @@ interface AppStore {
   // Actions - UI
   setActiveView: (view: AppStore["activeView"]) => void;
   toggleSnippets: () => void;
+  toggleAiPanel: () => void;
+  setShowAiPanel: (show: boolean) => void;
   setAiContext: (ctx: string | null) => void;
   setLastTerminalError: (err: string | null) => void;
 
@@ -77,6 +80,7 @@ export const useStore = create<AppStore>((set, get) => ({
   isSplit: false,
   splitDirection: "horizontal",
   showSnippets: false,
+  showAiPanel: false,
   activeView: "hosts",
   aiContext: null,
   lastTerminalError: null,
@@ -160,6 +164,8 @@ export const useStore = create<AppStore>((set, get) => ({
 
   setActiveView: (view) => set({ activeView: view }),
   toggleSnippets: () => set((s) => ({ showSnippets: !s.showSnippets })),
+  toggleAiPanel: () => set((s) => ({ showAiPanel: !s.showAiPanel })),
+  setShowAiPanel: (show) => set({ showAiPanel: show }),
   setAiContext: (ctx) => set({ aiContext: ctx }),
   setLastTerminalError: (err) => set({ lastTerminalError: err }),
 

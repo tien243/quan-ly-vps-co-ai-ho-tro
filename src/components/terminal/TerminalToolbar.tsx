@@ -11,15 +11,20 @@ interface Props {
 }
 
 export default function TerminalToolbar({ tab, getOutput }: Props) {
-  const { addTab, closeTab, toggleSplit, toggleSnippets, tabs, setAiContext, setActiveView, lastTerminalError } = useStore();
+  const { addTab, closeTab, toggleSplit, toggleSnippets, tabs, setAiContext, setShowAiPanel, lastTerminalError } = useStore();
+
+  const stripAnsi = (s: string) =>
+    s.replace(/\x1b\[[0-9;]*[A-Za-z]/g, "")
+     .replace(/\x1b[^[]/g, "")
+     .replace(/[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f]/g, "");
 
   const handleAskAi = () => {
-    const output = getOutput();
+    const output = stripAnsi(getOutput());
     const context = lastTerminalError
-      ? `${lastTerminalError}\n\nRecent terminal output:\n${output.replace(/\x1b\[[0-9;]*m/g, "").slice(-800)}`
-      : output.replace(/\x1b\[[0-9;]*m/g, "").slice(-800);
+      ? `${lastTerminalError}\n\nRecent terminal output:\n${output.slice(-800)}`
+      : output.slice(-800);
     setAiContext(context || `Connected to: ${tab.host_label}`);
-    setActiveView("ai");
+    setShowAiPanel(true);
   };
 
   const handleDisconnect = async () => {

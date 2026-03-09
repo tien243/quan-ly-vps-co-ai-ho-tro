@@ -28,19 +28,34 @@ export default function SettingsPage() {
   const [syncing, setSyncing] = useState(false);
 
   // ── AI Assistant state ──
-  type AiProvider = "anthropic" | "openai" | "gemini";
-  const AI_PROVIDERS: { id: AiProvider; label: string; placeholder: string; settingsKey: string; hint: string }[] = [
-    { id: "anthropic", label: "Claude (Anthropic)", placeholder: "sk-ant-api03-...", settingsKey: "anthropic_api_key", hint: "console.anthropic.com" },
-    { id: "openai",    label: "GPT (OpenAI)",       placeholder: "sk-proj-...",       settingsKey: "openai_api_key",    hint: "platform.openai.com/api-keys" },
-    { id: "gemini",    label: "Gemini (Google)",    placeholder: "AIzaSy...",         settingsKey: "gemini_api_key",    hint: "aistudio.google.com" },
+  type AiProvider = "gemini" | "openrouter" | "custom_claude" | "custom_openai";
+  const AI_PROVIDERS: { id: AiProvider; label: string; placeholder: string; settingsKey: string; hint?: string; baseUrlKey?: string; modelKey?: string; defaultBaseUrl?: string }[] = [
+    { id: "gemini",       label: "Gemini (Google)",             placeholder: "AIzaSy...",          settingsKey: "gemini_api_key",      hint: "aistudio.google.com" },
+    { id: "openrouter",   label: "OpenRouter",                  placeholder: "sk-or-v1-...",       settingsKey: "openrouter_api_key",  hint: "openrouter.ai/keys" },
+    { id: "custom_claude", label: "Custom (Claude-compatible)", placeholder: "API key / Bearer",   settingsKey: "custom_claude_api_key", baseUrlKey: "custom_claude_base_url", modelKey: "custom_claude_model", defaultBaseUrl: "https://api.anthropic.com" },
+    { id: "custom_openai", label: "Custom (OpenAI-compatible)", placeholder: "API key (optional)", settingsKey: "custom_openai_api_key", baseUrlKey: "custom_openai_base_url", modelKey: "custom_openai_model", defaultBaseUrl: "http://localhost:11434/v1" },
   ];
-  const [aiKeys, setAiKeys] = useState<Record<AiProvider, string>>({ anthropic: "", openai: "", gemini: "" });
-  const [aiKeyInputs, setAiKeyInputs] = useState<Record<AiProvider, string>>({ anthropic: "", openai: "", gemini: "" });
+  const emptyKeys = { gemini: "", openrouter: "", custom_claude: "", custom_openai: "" } as Record<AiProvider, string>;
+  const [aiKeys, setAiKeys] = useState<Record<AiProvider, string>>(emptyKeys);
+  const [aiKeyInputs, setAiKeyInputs] = useState<Record<AiProvider, string>>(emptyKeys);
   const [aiKeySaved, setAiKeySaved] = useState<AiProvider | null>(null);
+  // Extra config for custom providers
+  const [customBaseUrls, setCustomBaseUrls] = useState({ custom_claude: "", custom_openai: "" });
+  const [customModels, setCustomModels] = useState({ custom_claude: "", custom_openai: "" });
+  const [customConfigSaved, setCustomConfigSaved] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all(AI_PROVIDERS.map((p) => api.settingsGet(p.settingsKey).catch(() => null))).then(([ant, oai, gem]) => {
-      setAiKeys({ anthropic: ant ?? "", openai: oai ?? "", gemini: gem ?? "" });
+    Promise.all([
+      ...AI_PROVIDERS.map((p) => api.settingsGet(p.settingsKey).catch(() => null)),
+      api.settingsGet("custom_claude_base_url").catch(() => null),
+      api.settingsGet("custom_openai_base_url").catch(() => null),
+      api.settingsGet("custom_claude_model").catch(() => null),
+      api.settingsGet("custom_openai_model").catch(() => null),
+    ]).then((results) => {
+      const [gem, ort, ccKey, coKey, ccUrl, coUrl, ccModel, coModel] = results;
+      setAiKeys({ gemini: gem ?? "", openrouter: ort ?? "", custom_claude: ccKey ?? "", custom_openai: coKey ?? "" });
+      setCustomBaseUrls({ custom_claude: ccUrl ?? "https://api.anthropic.com", custom_openai: coUrl ?? "http://localhost:11434/v1" });
+      setCustomModels({ custom_claude: ccModel ?? "", custom_openai: coModel ?? "" });
     });
   }, []);
 
@@ -53,6 +68,14 @@ export default function SettingsPage() {
     setAiKeyInputs((k) => ({ ...k, [provider]: "" }));
     setAiKeySaved(provider);
     setTimeout(() => setAiKeySaved(null), 2000);
+  };
+
+  const saveCustomConfig = async (provider: "custom_claude" | "custom_openai") => {
+    const p = AI_PROVIDERS.find((x) => x.id === provider)!;
+    if (p.baseUrlKey) await api.settingsSet(p.baseUrlKey, customBaseUrls[provider]);
+    if (p.modelKey) await api.settingsSet(p.modelKey, customModels[provider]);
+    setCustomConfigSaved(provider);
+    setTimeout(() => setCustomConfigSaved(null), 2000);
   };
 
   const removeAiKey = async (provider: AiProvider) => {
@@ -312,23 +335,60 @@ export default function SettingsPage() {
             <p className="text-xs text-muted-foreground mb-4">
               Configure API keys for the built-in AI chat. Keys are stored locally — never sent to any server other than the respective AI provider.
             </p>
-            <div className="space-y-4">
+            <div className="space-y-5">
               {AI_PROVIDERS.map((p) => {
                 const currentKey = aiKeys[p.id];
                 const inputVal = aiKeyInputs[p.id];
                 const isSaved = aiKeySaved === p.id;
+                const isCustom = p.id === "custom_claude" || p.id === "custom_openai";
                 return (
-                  <div key={p.id} className="space-y-1.5">
+                  <div key={p.id} className="space-y-2 pb-4 border-b border-border last:border-0 last:pb-0">
                     <div className="flex items-center gap-2">
                       <Bot size={13} className="text-muted-foreground" />
                       <span className="text-xs font-medium text-foreground">{p.label}</span>
                       {currentKey && (
-                        <span className="text-xs text-muted-foreground font-mono ml-auto">...{currentKey.slice(-6)}</span>
-                      )}
-                      {currentKey && (
-                        <button onClick={() => removeAiKey(p.id)} className="text-xs text-muted-foreground hover:text-destructive transition-colors">Remove</button>
+                        <>
+                          <span className="text-xs text-muted-foreground font-mono ml-auto">...{currentKey.slice(-6)}</span>
+                          <button onClick={() => removeAiKey(p.id)} className="text-xs text-muted-foreground hover:text-destructive transition-colors">Remove</button>
+                        </>
                       )}
                     </div>
+
+                    {/* Extra config for custom providers */}
+                    {isCustom && (
+                      <div className="space-y-2 pl-0">
+                        <div>
+                          <label className="text-xs text-muted-foreground block mb-1">Base URL</label>
+                          <input
+                            type="text"
+                            value={customBaseUrls[p.id as "custom_claude" | "custom_openai"]}
+                            onChange={(e) => setCustomBaseUrls((u) => ({ ...u, [p.id]: e.target.value }))}
+                            placeholder={p.defaultBaseUrl}
+                            className="w-full px-3 py-1.5 text-sm bg-muted rounded-md border border-border focus:outline-none focus:ring-1 focus:ring-ring text-foreground allow-select font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground block mb-1">Model name</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={customModels[p.id as "custom_claude" | "custom_openai"]}
+                              onChange={(e) => setCustomModels((m) => ({ ...m, [p.id]: e.target.value }))}
+                              placeholder={p.id === "custom_claude" ? "claude-3-5-sonnet-20241022" : "llama3.2"}
+                              className="flex-1 px-3 py-1.5 text-sm bg-muted rounded-md border border-border focus:outline-none focus:ring-1 focus:ring-ring text-foreground allow-select font-mono"
+                            />
+                            <button
+                              onClick={() => saveCustomConfig(p.id as "custom_claude" | "custom_openai")}
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              {customConfigSaved === p.id ? <><Check size={13} className="text-green-400" /> Saved!</> : "Save config"}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* API key */}
                     <div className="flex gap-2">
                       <input
                         type="password"
@@ -347,8 +407,11 @@ export default function SettingsPage() {
                         {isSaved ? "Saved!" : currentKey ? "Update" : "Save"}
                       </button>
                     </div>
-                    {!currentKey && (
+                    {!currentKey && p.hint && (
                       <p className="text-xs text-muted-foreground pl-0.5">Get key at <span className="text-primary">{p.hint}</span></p>
+                    )}
+                    {!currentKey && isCustom && p.id === "custom_openai" && (
+                      <p className="text-xs text-muted-foreground pl-0.5">API key optional for local models (Ollama, LM Studio)</p>
                     )}
                   </div>
                 );
