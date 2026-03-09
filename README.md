@@ -48,7 +48,32 @@ Built with **Tauri 2.0**, **Rust**, and **React**. TermiusClone offers a premium
 - **macOS**: Xcode Command Line Tools
 - **Windows**: [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) and C++ Build Tools
 
-### Installation
+### Download (Pre-built)
+
+Download the latest release from [GitHub Releases](https://github.com/tien243/quan-ly-vps-co-ai-ho-tro/releases):
+
+| Platform | File |
+|---|---|
+| macOS Apple Silicon (M1/M2/M3) | `TermiusClone_*_aarch64.dmg` |
+| macOS Intel | `TermiusClone_*_x64.dmg` |
+| Windows | `TermiusClone_*_x64-setup.exe` |
+
+> **macOS — Không mở được app?**
+>
+> Nếu bị Gatekeeper chặn → System Settings → Privacy & Security → Open Anyway.
+>
+> Hoặc chạy lệnh sau trong Terminal sau khi kéo app vào Applications:
+> ```bash
+> xattr -cr /Applications/TermiusClone.app
+> ```
+
+> **Windows — SmartScreen cảnh báo?**
+>
+> Nhấn **More info** → **Run anyway**.
+
+---
+
+### Build from Source
 
 1. **Clone the repository**:
    ```bash
