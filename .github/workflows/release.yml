@@ -77,6 +77,10 @@ jobs:
             | Windows | `TermiusClone_*_x64-setup.exe` |
 
             **macOS**: Nếu bị Gatekeeper chặn → System Settings → Privacy & Security → Open Anyway.
+            Hoặc chạy lệnh sau trong Terminal sau khi kéo app vào Applications:
+            ```
+            xattr -cr /Applications/TermiusClone.app
+            ```
             **Windows**: Nếu SmartScreen cảnh báo → More info → Run anyway.
           releaseDraft: false
           prerelease: false
