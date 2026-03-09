@@ -52,8 +52,8 @@ Built with **Tauri 2.0**, **Rust**, and **React**. TermiusClone offers a premium
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/APP-CLONE-TEMIUS.git
-   cd APP-CLONE-TEMIUS
+   git clone https://github.com/tien243/quan-ly-vps-co-ai-ho-tro.git
+   cd quan-ly-vps-co-ai-ho-tro
    ```
 
 2. **Install dependencies**:
