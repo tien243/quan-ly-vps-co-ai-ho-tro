@@ -23,11 +23,35 @@ struct UserResponse {
     login: String,
 }
 
+#[derive(Deserialize)]
+struct GistListItem {
+    id: String,
+    files: std::collections::HashMap<String, serde_json::Value>,
+}
+
 fn client() -> Client {
     Client::builder()
         .user_agent("TermiusClone/1.0")
         .build()
         .expect("HTTP client build failed")
+}
+
+/// Search all gists for the one containing our sync file. Returns the Gist ID if found.
+pub async fn find_gist(token: &str) -> Result<Option<String>, String> {
+    let resp = client()
+        .get(format!("{API_BASE}/gists"))
+        .bearer_auth(token)
+        .send()
+        .await
+        .map_err(|e| format!("Network error: {e}"))?;
+
+    if !resp.status().is_success() {
+        return Ok(None);
+    }
+
+    let gists: Vec<GistListItem> = resp.json().await.map_err(|e| e.to_string())?;
+    let found = gists.into_iter().find(|g| g.files.contains_key(GIST_FILENAME));
+    Ok(found.map(|g| g.id))
 }
 
 /// Validate the PAT and return the GitHub username.

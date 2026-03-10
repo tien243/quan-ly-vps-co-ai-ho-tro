@@ -437,26 +437,33 @@ pub async fn gist_download_cmd(
     passphrase: String,
 ) -> Result<SyncStats, String> {
     // 1. Read settings (sync, short lock)
-    let (token, gist_id) = {
+    let (token, saved_gist_id) = {
         let conn = state.conn.lock().unwrap();
         let (token, gist_id) = gist_settings(&conn);
         if token.is_empty() {
             return Err("Chưa kết nối GitHub.".to_string());
         }
-        if gist_id.is_empty() {
-            return Err("Chưa có dữ liệu sync. Vui lòng upload từ thiết bị khác trước.".to_string());
-        }
         (token, gist_id)
     }; // conn dropped
 
-    // 2. Async download (no mutex held)
+    // 2. Resolve Gist ID — use saved one or search via API
+    let gist_id = if !saved_gist_id.is_empty() {
+        saved_gist_id
+    } else {
+        gist_sync::find_gist(&token)
+            .await?
+            .ok_or("Chưa có dữ liệu sync trên Gist. Vui lòng upload từ thiết bị khác trước.")?
+    };
+
+    // 3. Async download (no mutex held)
     let data = gist_sync::download_gist(&token, &gist_id).await?;
 
-    // 3. Import (sync, short lock)
+    // 4. Import + cache Gist ID (sync, short lock)
     let tmp = std::env::temp_dir().join("termius-gist-down.tcsync");
     std::fs::write(&tmp, &data).map_err(|e| format!("Write temp: {e}"))?;
     let stats = {
         let conn = state.conn.lock().unwrap();
+        db::settings_set(&conn, "gist_id", &gist_id).ok(); // cache for next time
         let s = import_sync(&conn, &passphrase, tmp.to_str().unwrap());
         let _ = std::fs::remove_file(&tmp);
         s
