@@ -86,18 +86,18 @@ export const syncExport = (path: string, passphrase: string) =>
 export const syncImport = (path: string, passphrase: string) =>
   invoke<SyncStats>("sync_import_cmd", { path, passphrase });
 
-// ===== Google Drive Sync =====
-export const googleAuth = (clientId: string, clientSecret: string) =>
-  invoke<string>("google_auth_cmd", { clientId, clientSecret });
+// ===== GitHub Gist Sync =====
+export const gistConnect = (token: string) =>
+  invoke<string>("gist_connect_cmd", { token });
 
-export const googleStatus = () =>
-  invoke<string | null>("google_status_cmd");
+export const gistStatus = () =>
+  invoke<string | null>("gist_status_cmd");
 
-export const googleDisconnect = () =>
-  invoke<void>("google_disconnect_cmd");
+export const gistDisconnect = () =>
+  invoke<void>("gist_disconnect_cmd");
 
-export const googleUpload = (passphrase: string) =>
-  invoke<void>("google_upload_cmd", { passphrase });
+export const gistUpload = (passphrase: string) =>
+  invoke<void>("gist_upload_cmd", { passphrase });
 
-export const googleDownload = (passphrase: string) =>
-  invoke<SyncStats>("google_download_cmd", { passphrase });
+export const gistDownload = (passphrase: string) =>
+  invoke<SyncStats>("gist_download_cmd", { passphrase });

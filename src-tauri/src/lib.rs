@@ -1,7 +1,7 @@
 mod commands;
 mod crypto;
 mod db;
-mod google_sync;
+mod gist_sync;
 mod sftp;
 mod ssh;
 mod sync;
@@ -75,13 +75,12 @@ pub fn run() {
             // Sync (file-based)
             commands::sync_export_cmd,
             commands::sync_import_cmd,
-            // Google Drive Sync
-            commands::google_auth_cmd,
-            commands::google_status_cmd,
-            commands::google_disconnect_cmd,
-            commands::google_upload_cmd,
-            commands::google_download_cmd,
-
+            // GitHub Gist Sync
+            commands::gist_connect_cmd,
+            commands::gist_status_cmd,
+            commands::gist_disconnect_cmd,
+            commands::gist_upload_cmd,
+            commands::gist_download_cmd,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

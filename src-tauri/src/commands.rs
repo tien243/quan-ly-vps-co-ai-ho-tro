@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::crypto::{decrypt, encrypt, fingerprint_from_pem};
 use crate::sync::{export_sync, import_sync, SyncStats};
-use crate::google_sync;
+use crate::gist_sync;
 use crate::db::{self, Group, Host, Snippet, SshKey};
 use crate::sftp::{
     sftp_delete, sftp_download_bytes, sftp_list, sftp_mkdir, sftp_open, sftp_rename,
@@ -358,111 +358,108 @@ pub fn sync_import_cmd(
     import_sync(&conn, &passphrase, &path)
 }
 
-// ===== Google Drive Sync =====
+// ===== GitHub Gist Sync =====
 
-fn google_settings(conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> (String, String, String, String) {
+fn gist_settings(conn: &std::sync::MutexGuard<'_, rusqlite::Connection>) -> (String, String) {
     let get = |k: &str| db::settings_get(conn, k).ok().flatten().unwrap_or_default();
-    (get("google_access_token"), get("google_refresh_token"), get("google_client_id"), get("google_client_secret"))
+    (get("gist_token"), get("gist_id"))
 }
 
-/// Start Google OAuth2 PKCE flow. Opens browser, waits for callback, stores tokens.
-/// Returns the authenticated Gmail address.
+/// Validate a GitHub PAT and save it. Returns the GitHub username.
 #[tauri::command]
-pub async fn google_auth_cmd(
+pub async fn gist_connect_cmd(
     state: State<'_, AppState>,
-    client_id: String,
-    client_secret: String,
+    token: String,
 ) -> Result<String, String> {
-    // 1. Full async OAuth flow — no mutex held
-    let result = google_sync::auth_flow(&client_id, &client_secret).await?;
+    if token.trim().is_empty() {
+        return Err("Token không được để trống.".to_string());
+    }
+    // Async validate — no mutex held
+    let username = gist_sync::validate_token(&token).await?;
 
-    // 2. Short synchronous write
     let conn = state.conn.lock().unwrap();
-    db::settings_set(&conn, "google_access_token", &result.access_token).map_err(|e| e.to_string())?;
-    db::settings_set(&conn, "google_refresh_token", &result.refresh_token).map_err(|e| e.to_string())?;
-    db::settings_set(&conn, "google_user_email", &result.email).map_err(|e| e.to_string())?;
-    db::settings_set(&conn, "google_client_id", &client_id).map_err(|e| e.to_string())?;
-    db::settings_set(&conn, "google_client_secret", &client_secret).map_err(|e| e.to_string())?;
-
-    Ok(result.email)
+    db::settings_set(&conn, "gist_token", &token).map_err(|e| e.to_string())?;
+    db::settings_set(&conn, "gist_username", &username).map_err(|e| e.to_string())?;
+    Ok(username)
 }
 
-/// Returns the stored Gmail address, or null if not signed in.
+/// Returns the stored GitHub username, or null if not connected.
 #[tauri::command]
-pub fn google_status_cmd(state: State<'_, AppState>) -> Option<String> {
+pub fn gist_status_cmd(state: State<'_, AppState>) -> Option<String> {
     let conn = state.conn.lock().unwrap();
-    db::settings_get(&conn, "google_user_email").ok().flatten().filter(|e| !e.is_empty())
+    db::settings_get(&conn, "gist_username").ok().flatten().filter(|v| !v.is_empty())
 }
 
-/// Clears all stored Google credentials (sign out).
+/// Clear all stored Gist credentials.
 #[tauri::command]
-pub fn google_disconnect_cmd(state: State<'_, AppState>) -> Result<(), String> {
+pub fn gist_disconnect_cmd(state: State<'_, AppState>) -> Result<(), String> {
     let conn = state.conn.lock().unwrap();
-    for key in &["google_access_token","google_refresh_token","google_user_email","google_client_id","google_client_secret"] {
+    for key in &["gist_token", "gist_id", "gist_username"] {
         let _ = conn.execute("DELETE FROM app_settings WHERE key=?1", [key]);
     }
     Ok(())
 }
 
-/// Export encrypted bundle and upload to Google Drive appDataFolder.
+/// Export, encrypt, and upload to GitHub Gist.
 #[tauri::command]
-pub async fn google_upload_cmd(
+pub async fn gist_upload_cmd(
     state: State<'_, AppState>,
     passphrase: String,
 ) -> Result<(), String> {
-    // 1. Export to temp file + read tokens (sync, short lock)
-    let (at, rt, ci, cs, data) = {
+    // 1. Export + read settings (sync, short lock)
+    let (token, gist_id, data) = {
         let conn = state.conn.lock().unwrap();
-        let (at, rt, ci, cs) = google_settings(&conn);
-        if at.is_empty() { return Err("Not signed in to Google. Please connect your account first.".to_string()); }
-        let tmp = std::env::temp_dir().join("termius-google-up.tcsync");
+        let (token, gist_id) = gist_settings(&conn);
+        if token.is_empty() {
+            return Err("Chưa kết nối GitHub. Vui lòng nhập Personal Access Token trước.".to_string());
+        }
+        let tmp = std::env::temp_dir().join("termius-gist-up.tcsync");
         export_sync(&conn, &passphrase, tmp.to_str().unwrap())?;
         let data = std::fs::read(&tmp).map_err(|e| format!("Read temp: {e}"))?;
         let _ = std::fs::remove_file(&tmp);
-        (at, rt, ci, cs, data)
+        let id = if gist_id.is_empty() { None } else { Some(gist_id) };
+        (token, id, data)
     }; // conn dropped
 
     // 2. Async upload (no mutex held)
-    let new_token = google_sync::drive_upload(&at, &rt, &ci, &cs, data).await?;
+    let new_id = gist_sync::upload_gist(&token, gist_id.as_deref(), data).await?;
 
-    // 3. Persist refreshed token if any
-    if let Some(new_at) = new_token {
-        let conn = state.conn.lock().unwrap();
-        db::settings_set(&conn, "google_access_token", &new_at).ok();
-    }
+    // 3. Save Gist ID
+    let conn = state.conn.lock().unwrap();
+    db::settings_set(&conn, "gist_id", &new_id).map_err(|e| e.to_string())?;
     Ok(())
 }
 
-/// Download sync bundle from Google Drive and merge into local DB.
+/// Download and decrypt from GitHub Gist, merge into local DB.
 #[tauri::command]
-pub async fn google_download_cmd(
+pub async fn gist_download_cmd(
     state: State<'_, AppState>,
     passphrase: String,
 ) -> Result<SyncStats, String> {
-    // 1. Read tokens (sync, short lock)
-    let (at, rt, ci, cs) = {
+    // 1. Read settings (sync, short lock)
+    let (token, gist_id) = {
         let conn = state.conn.lock().unwrap();
-        let (at, rt, ci, cs) = google_settings(&conn);
-        if at.is_empty() { return Err("Not signed in to Google.".to_string()); }
-        (at, rt, ci, cs)
+        let (token, gist_id) = gist_settings(&conn);
+        if token.is_empty() {
+            return Err("Chưa kết nối GitHub.".to_string());
+        }
+        if gist_id.is_empty() {
+            return Err("Chưa có dữ liệu sync. Vui lòng upload từ thiết bị khác trước.".to_string());
+        }
+        (token, gist_id)
     }; // conn dropped
 
     // 2. Async download (no mutex held)
-    let (data, new_token) = google_sync::drive_download(&at, &rt, &ci, &cs).await?;
+    let data = gist_sync::download_gist(&token, &gist_id).await?;
 
-    // 3. Write to temp file and import (sync, short lock)
-    let tmp = std::env::temp_dir().join("termius-google-down.tcsync");
+    // 3. Import (sync, short lock)
+    let tmp = std::env::temp_dir().join("termius-gist-down.tcsync");
     std::fs::write(&tmp, &data).map_err(|e| format!("Write temp: {e}"))?;
     let stats = {
         let conn = state.conn.lock().unwrap();
-        if let Some(new_at) = new_token {
-            db::settings_set(&conn, "google_access_token", &new_at).ok();
-        }
         let s = import_sync(&conn, &passphrase, tmp.to_str().unwrap());
         let _ = std::fs::remove_file(&tmp);
         s
     };
     stats
 }
-
-

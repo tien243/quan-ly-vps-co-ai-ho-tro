@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Upload, Download, ShieldCheck, LogIn, LogOut, RefreshCw, Cloud, Bot, Key, Check } from "lucide-react";
+import { Upload, Download, ShieldCheck, LogOut, RefreshCw, Github, Bot, Key, Check, Link } from "lucide-react";
 import { save, open as openDialog } from "@tauri-apps/plugin-dialog";
 import { toast } from "sonner";
 import { useStore } from "../store";
@@ -17,7 +17,7 @@ const TERMINAL_THEMES: { value: TerminalTheme; label: string }[] = [
 ];
 
 type SyncAction = "export" | "import" | null;
-type GoogleModal = "setup" | "upload" | "download" | null;
+type GistModal = "connect" | "upload" | "download" | null;
 
 export default function SettingsPage() {
   const { settings, setTheme, setTerminalTheme, setFontSize, refreshHosts, refreshGroups, refreshKeys, refreshSnippets } = useStore();
@@ -85,69 +85,65 @@ export default function SettingsPage() {
     toast.success("API key removed");
   };
 
-  // ── Google Drive sync state ──
-  const [googleEmail, setGoogleEmail] = useState<string | null>(null);
-  const [googleModal, setGoogleModal] = useState<GoogleModal>(null);
-  const [googleClientId, setGoogleClientId] = useState("");
-  const [googleClientSecret, setGoogleClientSecret] = useState("");
-  const [googlePassphrase, setGooglePassphrase] = useState("");
-  const [googleBusy, setGoogleBusy] = useState(false);
+  // ── GitHub Gist sync state ──
+  const [gistUsername, setGistUsername] = useState<string | null>(null);
+  const [gistModal, setGistModal] = useState<GistModal>(null);
+  const [gistToken, setGistToken] = useState("");
+  const [gistPassphrase, setGistPassphrase] = useState("");
+  const [gistBusy, setGistBusy] = useState(false);
 
   useEffect(() => {
-    api.googleStatus().then(setGoogleEmail).catch(() => setGoogleEmail(null));
+    api.gistStatus().then(setGistUsername).catch(() => setGistUsername(null));
   }, []);
 
-  const handleGoogleConnect = async () => {
-    if (!googleClientId || !googleClientSecret) {
-      toast.error("Client ID and Client Secret are required");
-      return;
-    }
-    setGoogleBusy(true);
+  const handleGistConnect = async () => {
+    if (!gistToken.trim()) { toast.error("Vui lòng nhập Personal Access Token"); return; }
+    setGistBusy(true);
     try {
-      const email = await api.googleAuth(googleClientId, googleClientSecret);
-      setGoogleEmail(email);
-      setGoogleModal(null);
-      setGoogleClientId(""); setGoogleClientSecret("");
-      toast.success(`Connected as ${email}`);
+      const username = await api.gistConnect(gistToken.trim());
+      setGistUsername(username);
+      setGistToken("");
+      setGistModal(null);
+      toast.success(`Đã kết nối: @${username}`);
     } catch (e) {
-      toast.error(`Google auth failed: ${e}`);
+      toast.error(`Kết nối thất bại: ${e}`);
     } finally {
-      setGoogleBusy(false);
+      setGistBusy(false);
     }
   };
 
-  const handleGoogleDisconnect = async () => {
-    await api.googleDisconnect().catch(() => {});
-    setGoogleEmail(null);
-    toast.success("Disconnected from Google");
+  const handleGistDisconnect = async () => {
+    await api.gistDisconnect().catch(() => {});
+    setGistUsername(null);
+    toast.success("Đã ngắt kết nối GitHub");
   };
 
-  const handleGoogleUpload = async () => {
-    if (!googlePassphrase) { toast.error("Passphrase is required"); return; }
-    setGoogleBusy(true);
+  const handleGistUpload = async () => {
+    if (!gistPassphrase) { toast.error("Passphrase is required"); return; }
+    setGistBusy(true);
     try {
-      await api.googleUpload(googlePassphrase);
-      toast.success("Synced to Google Drive");
-      setGoogleModal(null); setGooglePassphrase("");
+      await api.gistUpload(gistPassphrase);
+      toast.success("Đã sync lên GitHub Gist");
+      setGistModal(null); setGistPassphrase("");
     } catch (e) {
-      toast.error(`Upload failed: ${e}`);
+      toast.error(`Upload thất bại: ${e}`);
     } finally {
-      setGoogleBusy(false);
+      setGistBusy(false);
     }
   };
 
-  const handleGoogleDownload = async () => {
-    if (!googlePassphrase) { toast.error("Passphrase is required"); return; }
-    setGoogleBusy(true);
+  const handleGistDownload = async () => {
+    if (!gistPassphrase) { toast.error("Passphrase is required"); return; }
+    setGistBusy(true);
     try {
-      const stats = await api.googleDownload(googlePassphrase);
+      const stats = await api.gistDownload(gistPassphrase);
       await Promise.all([refreshHosts(), refreshGroups(), refreshKeys(), refreshSnippets()]);
-      toast.success(`Synced from Drive: ${stats.hosts} hosts, ${stats.groups} groups, ${stats.keys} keys`);
-      setGoogleModal(null); setGooglePassphrase("");
+      toast.success(`Đã sync từ Gist: ${stats.hosts} hosts, ${stats.groups} groups, ${stats.keys} keys`);
+      setGistModal(null); setGistPassphrase("");
     } catch (e) {
-      toast.error(`Download failed: ${e}`);
+      toast.error(`Download thất bại: ${e}`);
     } finally {
-      setGoogleBusy(false);
+      setGistBusy(false);
     }
   };
 
@@ -265,7 +261,7 @@ export default function SettingsPage() {
 
           <div className="h-px bg-border" />
 
-          {/* Sync */}
+          {/* File Sync */}
           <section>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Device Sync</h3>
             <p className="text-xs text-muted-foreground mb-4">
@@ -290,38 +286,59 @@ export default function SettingsPage() {
 
           <div className="h-px bg-border" />
 
-          {/* Google Drive Sync */}
+          {/* GitHub Gist Sync */}
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Google Drive Sync</h3>
-            {googleEmail ? (
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">GitHub Gist Sync</h3>
+            {gistUsername ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                  <Cloud size={15} className="text-primary flex-shrink-0" />
+                  <Github size={15} className="text-primary flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-foreground">Connected</p>
-                    <p className="text-xs text-muted-foreground truncate">{googleEmail}</p>
+                    <p className="text-xs text-muted-foreground truncate">@{gistUsername}</p>
                   </div>
-                  <button onClick={handleGoogleDisconnect} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors" title="Sign out">
+                  <button
+                    onClick={handleGistDisconnect}
+                    className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors"
+                    title="Disconnect"
+                  >
                     <LogOut size={13} />
                   </button>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => { setGoogleModal("upload"); setGooglePassphrase(""); }} className="flex items-center gap-2 px-3 py-1.5 text-xs rounded-md bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors font-medium">
-                    <Upload size={12} /> Sync to Drive
+                  <button
+                    onClick={() => { setGistModal("upload"); setGistPassphrase(""); }}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs rounded-md bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors font-medium"
+                  >
+                    <Upload size={12} /> Sync lên Gist
                   </button>
-                  <button onClick={() => { setGoogleModal("download"); setGooglePassphrase(""); }} className="flex items-center gap-2 px-3 py-1.5 text-xs rounded-md border border-border text-muted-foreground hover:bg-muted transition-colors">
-                    <Download size={12} /> Sync from Drive
+                  <button
+                    onClick={() => { setGistModal("download"); setGistPassphrase(""); }}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs rounded-md border border-border text-muted-foreground hover:bg-muted transition-colors"
+                  >
+                    <Download size={12} /> Sync từ Gist
                   </button>
                 </div>
               </div>
             ) : (
               <div className="space-y-3">
                 <p className="text-xs text-muted-foreground">
-                  Sync your data across devices via Google Drive. You need a{" "}
-                  <strong>Google Cloud OAuth2 client</strong> (Desktop app type) with the Drive API enabled.
+                  Đồng bộ dữ liệu VPS giữa các thiết bị qua GitHub Gist (private, miễn phí).
+                  Cần GitHub <span className="text-foreground font-medium">Personal Access Token</span> với quyền <code className="bg-muted px-1 rounded">gist</code>.
                 </p>
-                <button onClick={() => setGoogleModal("setup")} className="flex items-center gap-2 px-4 py-2 text-sm rounded-md bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors font-medium">
-                  <LogIn size={14} /> Connect Google Account
+                <a
+                  href="https://github.com/settings/tokens/new?scopes=gist&description=TermiusClone+Sync"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+                >
+                  <Link size={11} /> Tạo token tại github.com/settings/tokens
+                </a>
+                <button
+                  onClick={() => { setGistModal("connect"); setGistToken(""); }}
+                  className="flex items-center gap-2 px-4 py-2 text-sm rounded-md bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors font-medium"
+                >
+                  <Github size={14} /> Kết nối GitHub
                 </button>
               </div>
             )}
@@ -434,8 +451,7 @@ export default function SettingsPage() {
       </div>
     </div>
 
-    {/* Sync passphrase modal */}
-
+    {/* File Sync passphrase modal */}
     {syncAction && (
       <Modal
         title={syncAction === "export" ? "Export Sync File" : "Import Sync File"}
@@ -483,92 +499,99 @@ export default function SettingsPage() {
         </div>
       </Modal>
     )}
-    {/* Google Setup Modal */}
-    {googleModal === "setup" && (
-      <Modal title="Connect Google Account" onClose={() => setGoogleModal(null)} size="md">
+
+    {/* GitHub Gist connect modal */}
+    {gistModal === "connect" && (
+      <Modal
+        title="Kết nối GitHub Gist"
+        onClose={() => { setGistModal(null); setGistToken(""); }}
+        size="sm"
+      >
         <div className="space-y-4">
-          <div className="p-3 bg-muted/50 rounded-md space-y-1">
-            <p className="text-xs font-medium text-foreground">How to get credentials:</p>
-            <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-              <li>Go to Google Cloud Console → Create project</li>
-              <li>Enable <strong>Google Drive API</strong></li>
-              <li>APIs &amp; Services → Credentials → Create <strong>OAuth 2.0 Client ID</strong></li>
-              <li>Application type: <strong>Desktop app</strong></li>
-              <li>Copy the Client ID and Client Secret below</li>
-            </ol>
+          <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-md">
+            <Github size={15} className="text-primary mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-muted-foreground">
+              Nhập GitHub Personal Access Token với quyền <code className="bg-muted px-1 rounded">gist</code>.
+              Token được lưu cục bộ, không gửi đi đâu ngoài GitHub API.
+            </p>
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">Client ID</label>
-            <input
-              value={googleClientId}
-              onChange={(e) => setGoogleClientId(e.target.value)}
-              placeholder="xxxxxxxxxx.apps.googleusercontent.com"
-              className="w-full px-3 py-1.5 text-sm bg-muted rounded-md border border-border focus:outline-none focus:ring-1 focus:ring-ring text-foreground allow-select font-mono"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">Client Secret</label>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">Personal Access Token</label>
             <input
               type="password"
-              value={googleClientSecret}
-              onChange={(e) => setGoogleClientSecret(e.target.value)}
-              placeholder="GOCSPX-..."
-              className="w-full px-3 py-1.5 text-sm bg-muted rounded-md border border-border focus:outline-none focus:ring-1 focus:ring-ring text-foreground allow-select"
+              value={gistToken}
+              onChange={(e) => setGistToken(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleGistConnect(); }}
+              placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+              autoFocus
+              className="w-full px-3 py-2 text-sm bg-muted rounded-md border border-border focus:outline-none focus:ring-1 focus:ring-ring text-foreground allow-select font-mono"
             />
           </div>
-          <p className="text-xs text-muted-foreground">
-            Clicking <em>Sign in</em> will open your browser to authorize the app. A local server on 127.0.0.1 will receive the redirect — no data leaves your machine.
-          </p>
           <div className="flex justify-end gap-2">
-            <button onClick={() => setGoogleModal(null)} className="px-4 py-2 text-sm rounded-md border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
-            <button onClick={handleGoogleConnect} disabled={googleBusy || !googleClientId || !googleClientSecret} className="flex items-center gap-2 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-60 transition-colors">
-              {googleBusy ? <><RefreshCw size={13} className="animate-spin" /> Waiting...</> : <><LogIn size={13} /> Sign in with Google</>}
+            <button
+              onClick={() => { setGistModal(null); setGistToken(""); }}
+              className="px-4 py-2 text-sm rounded-md border border-border text-muted-foreground hover:bg-muted transition-colors"
+            >
+              Huỷ
+            </button>
+            <button
+              onClick={handleGistConnect}
+              disabled={gistBusy || !gistToken.trim()}
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-60 transition-colors"
+            >
+              {gistBusy ? <RefreshCw size={13} className="animate-spin" /> : <Github size={13} />}
+              {gistBusy ? "Đang xác thực..." : "Kết nối"}
             </button>
           </div>
         </div>
       </Modal>
     )}
 
-    {/* Google Upload / Download Modal */}
-    {(googleModal === "upload" || googleModal === "download") && (
+    {/* Gist upload / download modal */}
+    {(gistModal === "upload" || gistModal === "download") && (
       <Modal
-        title={googleModal === "upload" ? "Sync to Google Drive" : "Sync from Google Drive"}
-        onClose={() => { setGoogleModal(null); setGooglePassphrase(""); }}
+        title={gistModal === "upload" ? "Sync lên GitHub Gist" : "Sync từ GitHub Gist"}
+        onClose={() => { setGistModal(null); setGistPassphrase(""); }}
         size="sm"
       >
         <div className="space-y-4">
           <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-md">
             <ShieldCheck size={15} className="text-primary mt-0.5 flex-shrink-0" />
             <p className="text-xs text-muted-foreground">
-              {googleModal === "upload"
-                ? "Your data will be encrypted with this passphrase before uploading. Keep it safe — you'll need it to restore on another device."
-                : "Enter the passphrase used when the data was uploaded from the source device."}
+              {gistModal === "upload"
+                ? "Dữ liệu sẽ được mã hóa AES-256 với passphrase này trước khi upload. Nhớ passphrase để restore trên thiết bị khác."
+                : "Nhập passphrase đã dùng khi upload từ thiết bị nguồn."}
             </p>
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground block mb-1">Encryption Passphrase</label>
             <input
               type="password"
-              value={googlePassphrase}
-              onChange={(e) => setGooglePassphrase(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") googleModal === "upload" ? handleGoogleUpload() : handleGoogleDownload(); }}
+              value={gistPassphrase}
+              onChange={(e) => setGistPassphrase(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") gistModal === "upload" ? handleGistUpload() : handleGistDownload(); }}
               placeholder="Strong passphrase"
               autoFocus
               className="w-full px-3 py-2 text-sm bg-muted rounded-md border border-border focus:outline-none focus:ring-1 focus:ring-ring text-foreground allow-select"
             />
           </div>
           <div className="flex justify-end gap-2">
-            <button onClick={() => { setGoogleModal(null); setGooglePassphrase(""); }} className="px-4 py-2 text-sm rounded-md border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
             <button
-              onClick={googleModal === "upload" ? handleGoogleUpload : handleGoogleDownload}
-              disabled={googleBusy || !googlePassphrase}
+              onClick={() => { setGistModal(null); setGistPassphrase(""); }}
+              className="px-4 py-2 text-sm rounded-md border border-border text-muted-foreground hover:bg-muted transition-colors"
+            >
+              Huỷ
+            </button>
+            <button
+              onClick={gistModal === "upload" ? handleGistUpload : handleGistDownload}
+              disabled={gistBusy || !gistPassphrase}
               className="flex items-center gap-2 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-60 transition-colors"
             >
-              {googleBusy
-                ? <><RefreshCw size={13} className="animate-spin" /> {googleModal === "upload" ? "Uploading..." : "Downloading..."}</>
-                : googleModal === "upload"
-                  ? <><Upload size={13} /> Sync to Drive</>
-                  : <><Download size={13} /> Sync from Drive</>}
+              {gistBusy
+                ? <><RefreshCw size={13} className="animate-spin" /> {gistModal === "upload" ? "Uploading..." : "Downloading..."}</>
+                : gistModal === "upload"
+                  ? <><Upload size={13} /> Sync lên Gist</>
+                  : <><Download size={13} /> Sync từ Gist</>}
             </button>
           </div>
         </div>

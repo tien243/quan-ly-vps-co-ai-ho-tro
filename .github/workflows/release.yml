@@ -62,7 +62,6 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Skip macOS code signing when secrets are not configured
           CI: true
         with:
           tagName: ${{ github.ref_name }}
