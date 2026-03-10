@@ -1,15 +1,25 @@
 import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
+import { Loader2 } from "lucide-react";
 import AppLayout from "./components/layout/AppLayout";
+import LoginPage from "./pages/LoginPage";
 import { useStore } from "./store";
 
 export default function App() {
-  const { loadAll, settings } = useStore();
+  const { loadAll, settings, checkSession, userSession, isCheckingSession } = useStore();
 
+  // Check auth session first
   useEffect(() => {
-    loadAll();
+    checkSession();
   }, []);
+
+  // Load app data after login
+  useEffect(() => {
+    if (userSession) {
+      loadAll();
+    }
+  }, [userSession]);
 
   // Apply theme class to root
   useEffect(() => {
@@ -21,6 +31,26 @@ export default function App() {
     }
   }, [settings.theme]);
 
+  // Still checking session — show splash
+  if (isCheckingSession) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Not logged in — show login page
+  if (!userSession) {
+    return (
+      <>
+        <LoginPage />
+        <Toaster position="bottom-right" theme={settings.theme} richColors closeButton />
+      </>
+    );
+  }
+
+  // Logged in — show main app
   return (
     <>
       <Routes>
