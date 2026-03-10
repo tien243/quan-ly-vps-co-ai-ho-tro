@@ -20,7 +20,7 @@ type SyncAction = "export" | "import" | null;
 type GoogleModal = "setup" | "upload" | "download" | null;
 
 export default function SettingsPage() {
-  const { settings, setTheme, setTerminalTheme, setFontSize, refreshHosts, refreshGroups, refreshKeys, refreshSnippets, userSession, logout } = useStore();
+  const { settings, setTheme, setTerminalTheme, setFontSize, refreshHosts, refreshGroups, refreshKeys, refreshSnippets } = useStore();
 
   // ── File-based sync state ──
   const [syncAction, setSyncAction] = useState<SyncAction>(null);
@@ -196,40 +196,6 @@ export default function SettingsPage() {
 
       <div className="flex-1 overflow-y-auto p-4 max-w-lg mx-auto w-full">
         <div className="space-y-6">
-          {/* Account */}
-          {userSession && (
-            <section>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Tài khoản</h3>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                {userSession.picture ? (
-                  <img
-                    src={userSession.picture}
-                    alt={userSession.name}
-                    className="h-9 w-9 rounded-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/20 text-primary text-sm font-semibold">
-                    {userSession.name?.[0]?.toUpperCase() ?? userSession.email[0].toUpperCase()}
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  {userSession.name && <p className="text-sm font-medium truncate">{userSession.name}</p>}
-                  <p className="text-xs text-muted-foreground truncate">{userSession.email}</p>
-                </div>
-                <button
-                  onClick={() => logout()}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border border-border text-muted-foreground hover:text-destructive hover:border-destructive/50 transition-colors"
-                >
-                  <LogOut size={12} />
-                  Đăng xuất
-                </button>
-              </div>
-            </section>
-          )}
-
-          {userSession && <div className="h-px bg-border" />}
-
           {/* Appearance */}
           <section>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Appearance</h3>

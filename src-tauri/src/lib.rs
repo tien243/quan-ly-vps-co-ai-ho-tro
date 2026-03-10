@@ -81,11 +81,7 @@ pub fn run() {
             commands::google_disconnect_cmd,
             commands::google_upload_cmd,
             commands::google_download_cmd,
-            // Auth (Google Sign-In)
-            commands::auth_check_session_cmd,
-            commands::auth_login_cmd,
-            commands::auth_logout_cmd,
-            commands::auth_get_client_id_cmd,
+
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

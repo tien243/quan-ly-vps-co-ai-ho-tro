@@ -25,7 +25,6 @@ const DRIVE_FILES_ENDPOINT: &str = "https://www.googleapis.com/drive/v3/files";
 const SYNC_FILENAME: &str = "termius-clone-sync.tcsync";
 const OAUTH_SCOPE: &str =
     "https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.email";
-const LOGIN_SCOPE: &str = "openid email profile";
 
 // ── Public data types ──────────────────────────────────────────────────────
 
@@ -34,13 +33,6 @@ pub struct AuthResult {
     pub access_token: String,
     pub refresh_token: String,
     pub email: String,
-}
-
-/// Returned by `login_flow` with user profile info.
-pub struct LoginResult {
-    pub email: String,
-    pub name: String,
-    pub picture: String,
 }
 
 /// A refreshed access token, returned when the original was expired.
@@ -165,76 +157,6 @@ pub async fn auth_flow(client_id: &str, client_secret: &str) -> Result<AuthResul
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token.unwrap_or_default(),
         email: user_info.email.unwrap_or_else(|| "unknown@gmail.com".to_string()),
-    })
-}
-
-// ── Login flow (identity only) ─────────────────────────────────────────────
-
-/// OAuth2 PKCE flow for user identity (openid email profile scope).
-/// Does NOT require Drive access. Returns user profile info.
-pub async fn login_flow(client_id: &str, client_secret: &str) -> Result<LoginResult, String> {
-    let listener = TcpListener::bind("127.0.0.1:0")
-        .await
-        .map_err(|e| format!("Cannot bind local port: {e}"))?;
-    let port = listener.local_addr().map_err(|e| e.to_string())?.port();
-    let redirect_uri = format!("http://127.0.0.1:{port}/callback");
-
-    let (verifier, challenge) = generate_pkce();
-
-    let auth_url = format!(
-        "{AUTH_ENDPOINT}?client_id={cid}&redirect_uri={redir}&response_type=code\
-         &scope={scope}&access_type=online&prompt=select_account\
-         &code_challenge={challenge}&code_challenge_method=S256",
-        cid = url_encode(client_id),
-        redir = url_encode(&redirect_uri),
-        scope = url_encode(LOGIN_SCOPE),
-    );
-
-    open_browser(&auth_url)?;
-
-    let code = tokio::time::timeout(
-        std::time::Duration::from_secs(300),
-        wait_for_code(listener),
-    )
-    .await
-    .map_err(|_| "Google auth timed out (5 minutes)".to_string())??;
-
-    let client = Client::new();
-    let resp = client
-        .post(TOKEN_ENDPOINT)
-        .form(&[
-            ("code", code.as_str()),
-            ("client_id", client_id),
-            ("client_secret", client_secret),
-            ("redirect_uri", &redirect_uri),
-            ("grant_type", "authorization_code"),
-            ("code_verifier", &verifier),
-        ])
-        .send()
-        .await
-        .map_err(|e| format!("Token request failed: {e}"))?;
-
-    if !resp.status().is_success() {
-        let text = resp.text().await.unwrap_or_default();
-        return Err(format!("Token exchange failed: {text}"));
-    }
-
-    let tokens: TokenResponse = resp.json().await.map_err(|e| e.to_string())?;
-
-    let info: UserInfo = client
-        .get(USERINFO_ENDPOINT)
-        .bearer_auth(&tokens.access_token)
-        .send()
-        .await
-        .map_err(|e| format!("Userinfo request failed: {e}"))?
-        .json()
-        .await
-        .map_err(|e| e.to_string())?;
-
-    Ok(LoginResult {
-        email: info.email.unwrap_or_else(|| "unknown@gmail.com".to_string()),
-        name: info.name.unwrap_or_default(),
-        picture: info.picture.unwrap_or_default(),
     })
 }
 

@@ -86,26 +86,6 @@ export const syncExport = (path: string, passphrase: string) =>
 export const syncImport = (path: string, passphrase: string) =>
   invoke<SyncStats>("sync_import_cmd", { path, passphrase });
 
-// ===== Auth (Google Sign-In) =====
-
-export interface UserSession {
-  email: string;
-  name: string;
-  picture: string;
-}
-
-export const authCheckSession = () =>
-  invoke<UserSession | null>("auth_check_session_cmd");
-
-export const authLogin = (clientId: string, clientSecret: string) =>
-  invoke<UserSession>("auth_login_cmd", { clientId, clientSecret });
-
-export const authLogout = () =>
-  invoke<void>("auth_logout_cmd");
-
-export const authGetClientId = () =>
-  invoke<string | null>("auth_get_client_id_cmd");
-
 // ===== Google Drive Sync =====
 export const googleAuth = (clientId: string, clientSecret: string) =>
   invoke<string>("google_auth_cmd", { clientId, clientSecret });

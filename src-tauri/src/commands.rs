@@ -1,6 +1,5 @@
 use tauri::State;
 use uuid::Uuid;
-use serde::{Deserialize, Serialize};
 
 use crate::crypto::{decrypt, encrypt, fingerprint_from_pem};
 use crate::sync::{export_sync, import_sync, SyncStats};
@@ -466,63 +465,4 @@ pub async fn google_download_cmd(
     stats
 }
 
-// ===== Auth (Google Sign-In) =====
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct UserSession {
-    pub email: String,
-    pub name: String,
-    pub picture: String,
-}
-
-/// Check if a user session exists. Returns the session or null.
-#[tauri::command]
-pub fn auth_check_session_cmd(state: State<'_, AppState>) -> Option<UserSession> {
-    let conn = state.conn.lock().unwrap();
-    let email = db::settings_get(&conn, "user_session_email").ok().flatten()?;
-    if email.is_empty() {
-        return None;
-    }
-    let name = db::settings_get(&conn, "user_session_name").ok().flatten().unwrap_or_default();
-    let picture = db::settings_get(&conn, "user_session_picture").ok().flatten().unwrap_or_default();
-    Some(UserSession { email, name, picture })
-}
-
-/// OAuth2 PKCE login with Google. Opens browser, waits for callback, saves session.
-#[tauri::command]
-pub async fn auth_login_cmd(
-    state: State<'_, AppState>,
-    client_id: String,
-    client_secret: String,
-) -> Result<UserSession, String> {
-    // 1. Async OAuth flow — no mutex held
-    let result = google_sync::login_flow(&client_id, &client_secret).await?;
-
-    // 2. Save session and credentials
-    let conn = state.conn.lock().unwrap();
-    db::settings_set(&conn, "user_session_email", &result.email).map_err(|e| e.to_string())?;
-    db::settings_set(&conn, "user_session_name", &result.name).map_err(|e| e.to_string())?;
-    db::settings_set(&conn, "user_session_picture", &result.picture).map_err(|e| e.to_string())?;
-    // Also save credentials for future Drive sync
-    db::settings_set(&conn, "google_client_id", &client_id).map_err(|e| e.to_string())?;
-    db::settings_set(&conn, "google_client_secret", &client_secret).map_err(|e| e.to_string())?;
-
-    Ok(UserSession { email: result.email, name: result.name, picture: result.picture })
-}
-
-/// Clear the user session (logout). Does not clear Google Drive sync credentials.
-#[tauri::command]
-pub fn auth_logout_cmd(state: State<'_, AppState>) -> Result<(), String> {
-    let conn = state.conn.lock().unwrap();
-    for key in &["user_session_email", "user_session_name", "user_session_picture"] {
-        let _ = conn.execute("DELETE FROM app_settings WHERE key=?1", [key]);
-    }
-    Ok(())
-}
-
-/// Get saved Google Client ID (to pre-fill login form).
-#[tauri::command]
-pub fn auth_get_client_id_cmd(state: State<'_, AppState>) -> Option<String> {
-    let conn = state.conn.lock().unwrap();
-    db::settings_get(&conn, "google_client_id").ok().flatten().filter(|s| !s.is_empty())
-}

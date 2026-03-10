@@ -10,7 +10,6 @@ import type {
   TerminalTheme,
 } from "../types";
 import * as api from "../lib/tauri-api";
-import type { UserSession } from "../lib/tauri-api";
 
 interface AppStore {
   // Data
@@ -30,10 +29,6 @@ interface AppStore {
   activeView: "hosts" | "keys" | "snippets" | "settings" | "ai";
   aiContext: string | null;
   lastTerminalError: string | null;
-
-  // Auth
-  userSession: UserSession | null;
-  isCheckingSession: boolean;
 
   // Settings
   settings: AppSettings;
@@ -59,11 +54,6 @@ interface AppStore {
   setShowAiPanel: (show: boolean) => void;
   setAiContext: (ctx: string | null) => void;
   setLastTerminalError: (err: string | null) => void;
-
-  // Actions - auth
-  checkSession: () => Promise<void>;
-  setUserSession: (session: UserSession | null) => void;
-  logout: () => Promise<void>;
 
   // Actions - settings
   setTheme: (theme: AppTheme) => void;
@@ -95,8 +85,6 @@ export const useStore = create<AppStore>((set, get) => ({
   aiContext: null,
   lastTerminalError: null,
   settings: DEFAULT_SETTINGS,
-  userSession: null,
-  isCheckingSession: true,
 
   loadAll: async () => {
     await Promise.all([
@@ -172,23 +160,6 @@ export const useStore = create<AppStore>((set, get) => ({
       }
       return { isSplit: false, splitTabId: null };
     });
-  },
-
-  checkSession: async () => {
-    set({ isCheckingSession: true });
-    try {
-      const session = await api.authCheckSession();
-      set({ userSession: session, isCheckingSession: false });
-    } catch {
-      set({ userSession: null, isCheckingSession: false });
-    }
-  },
-
-  setUserSession: (session) => set({ userSession: session }),
-
-  logout: async () => {
-    await api.authLogout();
-    set({ userSession: null });
   },
 
   setActiveView: (view) => set({ activeView: view }),
